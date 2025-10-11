@@ -1,0 +1,15 @@
+# requirements.txt
+#
+# This file lists Python package dependencies for your project.
+#
+# Usage:
+#   1. Place the names and versions of required packages, one per line.
+#      Example: requests==2.31.0
+#   2. The dockerfile automatically installs dependencies when building the image.
+#   3. You can specify exact versions, minimum versions, or leave version unspecified.
+#      Example: numpy>=1.24.0
+#
+# Example:
+#     flask==2.3.2
+#     pandas
+# 

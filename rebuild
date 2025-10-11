@@ -1,7 +1,28 @@
 #!/bin/bash
+# """
+# Rebuild Script for Docker Compose
+# ---------------------------------
+#
+# This script rebuilds and restarts the Docker Compose services for the project.
+#
+# Usage:
+#     ./rebuild
+#
+# Environment Variables:
+#     ENV: Specifies the environment (e.g., development, production) to pass as a build argument.
+#
+# Steps performed:
+#     1. Builds the Docker images with the specified ENV argument.
+#     2. Stops running containers.
+#     3. Removes stopped containers.
+#     4. Starts containers in detached mode.
+#     5. Follows the logs for all services.
+# """
 
-docker-compose build --build-arg ENV=$ENV
-docker-compose stop
-docker-compose rm -f
-docker-compose up -d
-docker-compose logs --follow
+set -e  # Exit immediately if a command exits with a non-zero status
+
+docker-compose build --build-arg ENV=$ENV  # Build images with ENV argument
+docker-compose stop  # Stop running containers
+docker-compose rm -f  # Remove stopped containers forcefully
+docker-compose up -d  # Start containers in detached mode
+docker-compose logs --follow  # Stream logs for all services

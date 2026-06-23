@@ -1,23 +1,43 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+# Purpose:
+#   Build and push a timestamped Docker image for a generated Python service.
+#
+# Usage:
+#   ENV=production REPO_NAME=newsday/example-service ./build-image
+#
+# Environment:
+#   ENV is required and becomes the image runtime environment.
+#   REPO_NAME is required and should be the remote image repository.
+#
+# Outputs:
+#   Pushes an image tagged as build-<branch>-<timestamp>.
+#
+# Side Effects:
+#   Reads the current Git branch, builds a Docker image, and pushes it to the
+#   configured registry.
+set -euo pipefail
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+# Resolve the repository root relative to this script so it works from any cwd.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+cd "${SCRIPT_DIR}"
 
-cd $DIR
+# Fail early with actionable messages when required deployment inputs are absent.
+: "${ENV:?Set ENV before building, for example ENV=production.}"
+: "${REPO_NAME:?Set REPO_NAME before building, for example REPO_NAME=newsday/example-service.}"
 
-## Set repo name and tag
-REPO_NAME="DOCKERHUBUSER/REPO_NAME"
-BRANCH=`git branch | grep '^*' | sed 's/* //'`
-TAG="build-$BRANCH-$(date '+%Y%m%d%H%M%S')"
+# Use the branch name in the image tag, replacing slashes with Docker-safe dashes.
+BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+SAFE_BRANCH="${BRANCH//\//-}"
+TAG="build-${SAFE_BRANCH}-$(date '+%Y%m%d%H%M%S')"
 
-## Build the image using the repo name, tag and passing in the env var and build version
-docker build -t "$REPO_NAME:$TAG" --build-arg ENV=$ENV --build-arg TARGETENV=$ENV --build-arg BUILD_VERSION=$TAG .
+# Pass the tag into the image as BUILD_VERSION so runtime logs can identify it.
+docker build \
+  --tag "${REPO_NAME}:${TAG}" \
+  --build-arg "ENV=${ENV}" \
+  --build-arg "BUILD_VERSION=${TAG}" \
+  .
 
-## wait 10 seconds
-sleep 10
+docker push "${REPO_NAME}:${TAG}"
 
-## push the image to docker hub
-docker push "$REPO_NAME:$TAG"
-
-## Let us know we're good
-echo "BUILD COMPLETE: $REPO_NAME:$TAG"
+# Emit the final image reference for deployment tooling or manual follow-up.
+echo "BUILD COMPLETE: ${REPO_NAME}:${TAG}"

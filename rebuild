@@ -1,28 +1,30 @@
-#!/bin/bash
-# """
-# Rebuild Script for Docker Compose
-# ---------------------------------
-#
-# This script rebuilds and restarts the Docker Compose services for the project.
+#!/usr/bin/env bash
+# Purpose:
+#   Rebuild, restart, and follow logs for the local Compose service.
 #
 # Usage:
-#     ./rebuild
+#   ENV=local ./rebuild
 #
-# Environment Variables:
-#     ENV: Specifies the environment (e.g., development, production) to pass as a build argument.
+# Environment:
+#   ENV defaults to local and is passed to both build and runtime.
+#   BUILD_VERSION defaults to local-build for repeatable local runs.
 #
-# Steps performed:
-#     1. Builds the Docker images with the specified ENV argument.
-#     2. Stops running containers.
-#     3. Removes stopped containers.
-#     4. Starts containers in detached mode.
-#     5. Follows the logs for all services.
-# """
+# Side Effects:
+#   Builds the image, stops existing containers, removes stopped containers,
+#   starts the service detached, and attaches to Compose logs.
+set -euo pipefail
 
-set -e  # Exit immediately if a command exits with a non-zero status
+# Provide local defaults while still allowing shell or .env overrides.
+export ENV="${ENV:-local}"
+export BUILD_VERSION="${BUILD_VERSION:-local-build}"
 
-docker-compose build --build-arg ENV=$ENV  # Build images with ENV argument
-docker-compose stop  # Stop running containers
-docker-compose rm -f  # Remove stopped containers forcefully
-docker-compose up -d  # Start containers in detached mode
-docker-compose logs --follow  # Stream logs for all services
+# Rebuild the local image so dependency and Dockerfile changes are included.
+docker compose build --build-arg "ENV=${ENV}" --build-arg "BUILD_VERSION=${BUILD_VERSION}"
+
+# Restart from a clean stopped-container state.
+docker compose stop
+docker compose rm -f
+docker compose up -d
+
+# Follow logs as the final step so startup failures are visible immediately.
+docker compose logs --follow

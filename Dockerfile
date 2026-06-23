@@ -1,46 +1,49 @@
-# """
-# Dockerfile for Python Application
-# ---------------------------------
-#
-# Builds a container for a Python app using a slim Debian base image.
+# Purpose:
+#   Build the runtime image for Newsday Python services generated from this
+#   template.
 #
 # Usage:
-#     Build:
-#         docker build --build-arg BUILD_VERSION=1.0.0 --build-arg ENV=production -t my-python-app .
-#     Run:
-#         docker run -e ENV=production -e BUILD_VERSION=1.0.0 my-python-app
+#   docker build \
+#     --build-arg ENV=local \
+#     --build-arg BUILD_VERSION=local-build \
+#     -t python-docker-template:local .
 #
-# Arguments:
-#     BUILD_VERSION: Build version of the app (set at build time).
-#     ENV: Environment (development, production, etc.).
+# Environment:
+#   ENV identifies the runtime environment copied into the image.
+#   BUILD_VERSION identifies the release or local build copied into the image.
 #
-# Environment Variables:
-#     ENV: Propagates environment setting into the container.
-#     BUILD_VERSION: Propagates build version into the container.
-#     NODE_ENV: Set to match ENV for compatibility with Node-based tooling.
-#
-# Application files are copied into /usr/app, dependencies installed, and the service started using a shell script.
-# """
+# Operational Notes:
+#   Dependencies are installed before application files so Docker can reuse the
+#   dependency layer when only source files change.
 FROM python:3.13.1-slim-bookworm
 
-# Set up directories in advance so we can control the permissions
-RUN mkdir -p /usr/app
+# Prevent Python from writing .pyc files into bind-mounted local source trees.
+ENV PYTHONDONTWRITEBYTECODE=1
 
-# Set the work directory
+# Flush Python logs directly to stdout/stderr for Docker log collection.
+ENV PYTHONUNBUFFERED=1
+
+# Build arguments provide safe defaults for local template validation.
+ARG BUILD_VERSION=local-build
+ARG ENV=local
+
+# Runtime environment variables are available to the Python entry point.
+ENV BUILD_VERSION=${BUILD_VERSION}
+ENV ENV=${ENV}
+
+# Keep application code in a predictable path shared by Compose bind mounts.
 WORKDIR /usr/app
 
-# Copy over application files
+# Install dependency metadata first to preserve Docker build-cache efficiency.
+COPY requirements.txt .
+RUN python -m pip install \
+    --disable-pip-version-check \
+    --no-cache-dir \
+    --root-user-action=ignore \
+    -r requirements.txt
+
+# Copy the remaining application, documentation, and helper files.
 COPY . .
 
-# Set ARGs and ENV vars
-ARG BUILD_VERSION
-ARG ENV
-ENV ENV=${ENV}
-ENV BUILD_VERSION=${BUILD_VERSION}
-ENV NODE_ENV=${ENV}
-
-# Install dependencies
-RUN pip install -r requirements.txt
-
-# Start the service
+# Delegate startup to the script so generated services can add preflight checks.
 CMD ["bash", "./start-service"]

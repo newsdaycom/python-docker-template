@@ -1,1 +1,16 @@
-python3 /usr/app/index.py
+#!/usr/bin/env bash
+# Purpose:
+#   Start the Python service inside the Docker container.
+#
+# Usage:
+#   This script is invoked by the Dockerfile CMD.
+#
+# Environment:
+#   ENV and BUILD_VERSION are read by index.py.
+#
+# Side Effects:
+#   Replaces the shell with the Python process so signals are delivered directly
+#   to the application.
+set -euo pipefail
+
+exec python /usr/app/index.py

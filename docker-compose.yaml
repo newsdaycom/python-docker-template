@@ -1,30 +1,48 @@
-version: "3"
-
-## Search and replace 'express-docker-template' with the name of the service
-
+# Purpose:
+#   Define the local Docker Compose workflow for services generated from this
+#   Python template.
+#
+# Usage:
+#   ENV=local docker compose up --build
+#
+# Environment:
+#   ENV sets the local runtime environment.
+#   BUILD_VERSION identifies the local build.
+#   LOG_LEVEL and LOG_PRETTY are conventional logging flags for generated
+#   services that implement structured logging.
+#
+# Operational Notes:
+#   The default network is external because Newsday local services commonly
+#   share the `special-projects` Docker network.
 services:
   python-docker-template:
+    # Replace service, container, and host names when instantiating a real app.
     container_name: python-docker-template
     hostname: python-docker-template
-    volumes:
-      - .:/usr/app
-      - /usr/app/node_modules
-      - /usr/app/bin
     build:
       context: .
+      args:
+        # Build args mirror runtime env vars so image metadata and app startup agree.
+        ENV: ${ENV:-local}
+        BUILD_VERSION: ${BUILD_VERSION:-local-build}
+    volumes:
+      # Bind mount source for local development iteration.
+      - .:/usr/app
     environment:
-      - ENV
-      - BUILD_VERSION=local-build # DO NOT SPECIFY WHEN DEPLOYING TO STAGE
-      - NODE_ENV=${ENV} # CAN ONLY BE 'local' OR 'production', hardcode to 'production' WHEN DEPLOYING TO STAGE AND PROD
-      - NODE_OPTIONS=--enable-source-maps
-      - LOG_LEVEL=info
-      - LOG_PRETTY=on
+      # Keep local defaults explicit while allowing shell or .env overrides.
+      ENV: ${ENV:-local}
+      BUILD_VERSION: ${BUILD_VERSION:-local-build}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_PRETTY: ${LOG_PRETTY:-on}
     logging:
+      # Bound local log growth so long-running development containers stay tidy.
       driver: "json-file"
       options:
         max-size: "5m"
         max-file: "2"
+
 networks:
   default:
+    # Create with: docker network create special-projects
     name: special-projects
     external: true

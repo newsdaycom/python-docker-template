@@ -7,7 +7,7 @@ Use this file to document local development workflows for the generated service.
 ```bash
 cp .env.example .env
 docker network create special-projects 2>/dev/null || true
-ENV=local ./rebuild
+bash ./rebuild
 ```
 
 ## Dependency Changes

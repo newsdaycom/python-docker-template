@@ -15,7 +15,7 @@ Use this repository when creating a new Python service that should run consisten
 ```bash
 cp .env.example .env
 docker network create special-projects 2>/dev/null || true
-ENV=local ./rebuild
+bash ./rebuild
 ```
 
 To run without rebuilding:
@@ -51,7 +51,7 @@ ENV=local docker compose build
 ENV=local docker compose up
 
 # Rebuild, restart, and follow logs.
-ENV=local ./rebuild
+bash ./rebuild
 
 # Build and push a tagged deployment image.
 ENV=production REPO_NAME=newsday/example-service ./build-image
@@ -132,3 +132,19 @@ This template is maintained for Newsday Python Docker services. Generated reposi
 ## Multi-architecture build contract
 
 The default publication path builds AMD64 and ARM64 together. Stage builds require a clean checkout matching origin/stage, with feature branches based on the canonical release baseline. Use unique build tags and deploy the verified index digest; local OCI/load checks are explicitly separate from publication. See [multi-architecture guide](docs/multiarch.md) for inputs, stage promotion, failure handling and contract tests.
+
+
+## Native local rebuild
+
+Human developers run `bash ./rebuild` from this directory. The helper defaults
+to `ENV=local` and `BUILD_VERSION=local-build`, builds only the local Docker
+engine's Linux architecture, and preserves this service's existing startup/job
+behavior. Docker with Compose v2, the documented local dependencies and any
+external Compose network must already be available. An inherited stage/prod ENV
+is rejected; unset it before running. Deployment platform/builder settings do
+not select this build. No registry push, clean Git tree, remote builder or
+second architecture is required. Build/preflight failure stops before container
+replacement. A pinned incompatible service platform fails with a diagnostic
+instead of silently using emulation. Existing dependency/configuration and
+credential requirements still apply; never run real import/export/notification
+workflows as a startup test. Deployment `build-image` behavior is separate.
